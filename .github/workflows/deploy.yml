@@ -1,0 +1,64 @@
+name: CI/CD Backend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'infra/backend.Dockerfile'
+      - 'infra/docker-compose.prod.yml'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.BACKEND_IMAGE }}
+      REGISTRY: ${{ secrets.REGISTRY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to container registry
+        if: env.IMAGE_NAME != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/backend.Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            export DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              git clone ${{ github.server_url }}/${{ github.repository }} "$DEPLOY_PATH"
+            fi
+            cd "$DEPLOY_PATH"
+            git fetch --all
+            git reset --hard ${{ github.sha }}
+            echo "Logging into registry..."
+            docker login ${{ env.REGISTRY }} -u "${{ secrets.REGISTRY_USERNAME }}" -p "${{ secrets.REGISTRY_PASSWORD }}" || true
+            docker compose -f infra/docker-compose.prod.yml pull backend
+            docker compose -f infra/docker-compose.prod.yml up -d --remove-orphans
