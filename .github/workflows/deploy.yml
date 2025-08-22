@@ -75,3 +75,4 @@ jobs:
             git reset --hard ${{ github.sha }}
             docker compose -f infra/docker-compose.prod.yml pull backend
             docker compose -f infra/docker-compose.prod.yml up -d --remove-orphans
+
