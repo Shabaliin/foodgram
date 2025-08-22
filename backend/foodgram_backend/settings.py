@@ -19,11 +19,8 @@ INSTALLED_APPS = [
 	'django_filters',
 	'djoser',
 	'drf_spectacular',
-	# domain apps
 	'users',
 	'recipes',
-	'ingredients',
-	'tags',
 	'shortlinks',
 ]
 
