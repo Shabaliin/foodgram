@@ -73,7 +73,15 @@ class Command(BaseCommand):
         ]
 
         created_users = []
-        for email, username, first_name, last_name, password, is_staff, is_superuser in users_data:
+        for (
+            email,
+            username,
+            first_name,
+            last_name,
+            password,
+            is_staff,
+            is_superuser,
+        ) in users_data:
             user, created = User.objects.get_or_create(email=email, defaults={
                 'username': username,
                 'first_name': first_name,
@@ -84,13 +92,17 @@ class Command(BaseCommand):
             if created:
                 user.set_password(password)
                 user.save()
-                self.stdout.write(self.style.SUCCESS(f'Created user {email} / {password}'))
+                self.stdout.write(self.style.SUCCESS(
+                    f'Created user {email} / {password}')
+                )
             else:
                 self.stdout.write(f'User exists: {email}')
             # Ensure avatar
             if not user.avatar:
                 img = self._generate_image((300, 300), text=username[:1].upper())
-                user.avatar.save(f'{username}_avatar.png', ContentFile(img.getvalue()), save=True)
+                user.avatar.save(
+                    f'{username}_avatar.png', ContentFile(img.getvalue()), save=True
+                )
             created_users.append((user, password))
 
         # Create at least one recipe for each non-admin
