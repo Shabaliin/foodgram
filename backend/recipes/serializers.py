@@ -97,21 +97,22 @@ class RecipeWriteIngredientSerializer(serializers.Serializer):
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     ingredients = RecipeWriteIngredientSerializer(many=True)
     tags = serializers.ListField(
-        child=serializers.IntegerField(), 
+        child=serializers.IntegerField(),
         allow_empty=False
-        )
+    )
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
         fields = ('id', 'ingredients', 'tags',
-        'image', 'name', 'text', 'cooking_time')
+        'image', 'name', 'text', 'cooking_time'
+        )
 
     def validate_cooking_time(self, value: int):
         if value < 1:
             raise serializers.ValidationError(
                 'Убедитесь, что это значение больше либо равно 1.'
-                )
+            )
         return value
 
     def create(self, validated_data):
@@ -119,7 +120,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         tag_ids: List[int] = validated_data.pop('tags', [])
         recipe = Recipe.objects.create(
             author=self.context['request'].user, **validated_data
-            )
+        )
         recipe.tags.set(tag_ids)
         self._set_ingredients(recipe, ingredients_data)
         return recipe
@@ -140,7 +141,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def _set_ingredients(self, recipe: Recipe, ingredients_data: List[dict]):
         from .models import Ingredient, RecipeIngredient
         if not ingredients_data:
-            raise serializers.ValidationError({'ingredients': ['Обязательное поле.']})
+            raise serializers.ValidationError(
+                {'ingredients': ['Обязательное поле.']}
+            )
         seen = set()
         errors = []
         for idx, item in enumerate(ingredients_data):
