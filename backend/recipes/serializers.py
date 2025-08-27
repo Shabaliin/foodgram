@@ -104,7 +104,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'ingredients', 'tags',
+        fields = (
+        'id', 'ingredients', 'tags',
         'image', 'name', 'text', 'cooking_time'
         )
 
@@ -160,7 +161,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if any(e for e in errors if e):
             raise serializers.ValidationError({'ingredients': errors})
         ingredient_ids = [d['id'] for d in ingredients_data]
-        ingredient_map = {i.id: i for i in Ingredient.objects.filter(id__in=ingredient_ids)}
+        ingredient_map = {
+            i.id: i for i in Ingredient.objects.filter(id__in=ingredient_ids)
+        }
         for item in ingredients_data:
             ing = ingredient_map.get(item['id'])
             if not ing:
