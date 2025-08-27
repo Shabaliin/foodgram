@@ -35,7 +35,8 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(DjoserUserCreateSerializer):
     class Meta(DjoserUserCreateSerializer.Meta):
         model = User
-        fields = ('id', 'email', 'username',
+        fields = (
+            'id', 'email', 'username',
             'first_name', 'last_name', 'password'
         )
 
@@ -51,7 +52,6 @@ class UserWithRecipesSerializer(UserSerializer):
         )
 
     def get_recipes(self, obj: User):
-        from recipes.models import Recipe
         recipes_qs = obj.recipes.all().order_by('-created_at', '-id')
         limit = self.context.get('recipes_limit')
         if isinstance(limit, int):
