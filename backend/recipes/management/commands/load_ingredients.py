@@ -10,9 +10,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
-            '--from', 
-            dest='source', 
-            required=True, 
+            '--from',
+            dest='source',
+            required=True,
             help='Path to CSV or JSON file'
         )
 
@@ -30,7 +30,10 @@ class Command(BaseCommand):
                     if not row:
                         continue
                     name, measurement_unit = row[0], row[1]
-                    Ingredient.objects.get_or_create(name=name, measurement_unit=measurement_unit)
+                    Ingredient.objects.get_or_create(
+                        name=name,
+                        measurement_unit=measurement_unit
+                    )
                     count += 1
         elif path.suffix.lower() == '.json':
             with path.open(encoding='utf-8') as f:
