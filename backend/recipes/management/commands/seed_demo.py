@@ -99,7 +99,10 @@ class Command(BaseCommand):
                 self.stdout.write(f'User exists: {email}')
             # Ensure avatar
             if not user.avatar:
-                img = self._generate_image((300, 300), text=username[:1].upper())
+                img = self._generate_image(
+                    (300, 300), 
+                    text=username[:1].upper()
+                )
                 user.avatar.save(
                     f'{username}_avatar.png', ContentFile(img.getvalue()), save=True
                 )
