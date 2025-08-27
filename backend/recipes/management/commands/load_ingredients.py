@@ -9,7 +9,12 @@ class Command(BaseCommand):
     help = 'Load ingredients from CSV or JSON file'
 
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument('--from', dest='source', required=True, help='Path to CSV or JSON file')
+        parser.add_argument(
+            '--from', 
+            dest='source', 
+            required=True, 
+            help='Path to CSV or JSON file'
+        )
 
     def handle(self, *args, **options):
         source = options['source']
@@ -31,10 +36,17 @@ class Command(BaseCommand):
             with path.open(encoding='utf-8') as f:
                 items = json.load(f)
                 for item in items:
-                    Ingredient.objects.get_or_create(name=item['name'], measurement_unit=item['measurement_unit'])
+                    Ingredient.objects.get_or_create(
+                        name=item['name'], 
+                        measurement_unit=item['measurement_unit']
+                    )
                     count += 1
         else:
-            self.stderr.write(self.style.ERROR('Unsupported format. Use .csv or .json'))
+            self.stderr.write(
+                self.style.ERROR('Unsupported format. Use .csv or .json')
+            )
             return
-        self.stdout.write(self.style.SUCCESS(f'Loaded {count} ingredients'))
+        self.stdout.write(
+            self.style.SUCCESS(f'Loaded {count} ingredients')
+        )
 
