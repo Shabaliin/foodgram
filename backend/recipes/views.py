@@ -195,6 +195,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         absolute = request.build_absolute_uri(f"/s/{link.code}")
         return Response({"short-link": absolute})
 
+
 router = SimpleRouter()
 router.register(r'recipes', RecipeViewSet, basename='recipes')
 
