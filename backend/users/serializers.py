@@ -1,4 +1,6 @@
-from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+)
 from rest_framework import serializers
 from .models import User
 
@@ -10,7 +12,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username', 'first_name', 'last_name', 'is_subscribed', 'avatar'
+            'id', 'email', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'avatar'
         )
 
     def get_is_subscribed(self, obj: User) -> bool:
@@ -32,7 +35,9 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(DjoserUserCreateSerializer):
     class Meta(DjoserUserCreateSerializer.Meta):
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'password')
+        fields = ('id', 'email', 'username',
+            'first_name', 'last_name', 'password'
+        )
 
 
 class UserWithRecipesSerializer(UserSerializer):
@@ -40,7 +45,8 @@ class UserWithRecipesSerializer(UserSerializer):
     recipes_count = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ('recipes', 'recipes_count')
+        fields = UserSerializer.Meta.fields + 
+        ('recipes', 'recipes_count')
 
     def get_recipes(self, obj: User):
         from recipes.models import Recipe
