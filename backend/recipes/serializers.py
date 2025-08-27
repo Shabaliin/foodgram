@@ -1,6 +1,6 @@
+from __future__ import annotations
 import base64
 import uuid
-from __future__ import annotations
 from django.core.files.base import ContentFile
 from typing import List
 from rest_framework import serializers
@@ -43,12 +43,18 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'tags', 'author', 'ingredients', 'is_favorited', 'is_in_shopping_cart',
+            'id', 'tags', 'author', 'ingredients', 
+            'is_favorited', 'is_in_shopping_cart',
             'name', 'image', 'text', 'cooking_time'
         )
 
     def get_ingredients(self, obj: Recipe):
-        items = RecipeIngredient.objects.filter(recipe=obj).select_related('ingredient')
+        items = (
+            RecipeIngredient.objects
+            .filter(recipe=obj)
+            .select_related('ingredient')
+        )
+
         return [
             {
                 'id': item.ingredient_id,
@@ -95,17 +101,22 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time')
+        fields = ('id', 'ingredients', 'tags', 
+        'image', 'name', 'text', 'cooking_time')
 
     def validate_cooking_time(self, value: int):
         if value < 1:
-            raise serializers.ValidationError('Убедитесь, что это значение больше либо равно 1.')
+            raise serializers.ValidationError(
+                'Убедитесь, что это значение больше либо равно 1.'
+                )
         return value
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])
         tag_ids: List[int] = validated_data.pop('tags', [])
-        recipe = Recipe.objects.create(author=self.context['request'].user, **validated_data)
+        recipe = Recipe.objects.create(
+            author=self.context['request'].user, **validated_data
+            )
         recipe.tags.set(tag_ids)
         self._set_ingredients(recipe, ingredients_data)
         return recipe
@@ -142,9 +153,20 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             errors.append({})
         if any(e for e in errors if e):
             raise serializers.ValidationError({'ingredients': errors})
-        ingredient_map = {i.id: i for i in Ingredient.objects.filter(id__in=[d['id'] for d in ingredients_data])}
+        ingredient_ids = [d['id'] for d in ingredients_data]
+        ingredient_map = {i.id: i for i in Ingredient.objects.filter(id__in=ingredient_ids)}
         for item in ingredients_data:
             ing = ingredient_map.get(item['id'])
             if not ing:
-                raise serializers.ValidationError({'ingredients': [{'id': ['Выбран несуществующий объект.']} ]})
-            RecipeIngredient.objects.create(recipe=recipe, ingredient=ing, amount=item['amount'])
+                raise serializers.ValidationError({
+                    'ingredients': [
+                        {'id': ['Выбран несуществующий объект.']}
+                    ]
+                })
+
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient=ing,
+                amount=item['amount'],
+            )
+
