@@ -1,13 +1,19 @@
 from __future__ import annotations
 from collections import defaultdict
-from django.db.models import Prefetch, Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from .models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient
+from .models import (
+    Recipe,
+    Favorite,
+    ShoppingCart,
+    RecipeShortLink,
+    Tag,
+    Ingredient
+)
 from .serializers import (
     RecipeReadSerializer,
     RecipeCreateUpdateSerializer,
