@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.routers import SimpleRouter
 from rest_framework.response import Response
 
 from .models import (
@@ -193,9 +194,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         absolute = request.build_absolute_uri(f"/s/{link.code}")
         return Response({"short-link": absolute})
-
-
-from rest_framework.routers import SimpleRouter
 
 router = SimpleRouter()
 router.register(r'recipes', RecipeViewSet, basename='recipes')
