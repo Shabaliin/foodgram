@@ -52,4 +52,3 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f'Loaded {count} ingredients')
         )
-
