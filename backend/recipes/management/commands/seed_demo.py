@@ -1,6 +1,5 @@
 import io
 import random
-from pathlib import Path
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
@@ -11,7 +10,7 @@ from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 
 
 class Command(BaseCommand):
-    help = 'Create demo users (admin, staff, regular) and at least one recipe per user'
+    help = 'Create demo users and at least one recipe per user'
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -42,17 +41,35 @@ class Command(BaseCommand):
                 ('Огурцы', 'шт'),
             ]
             for name, mu in seed_ingredients:
-                Ingredient.objects.get_or_create(name=name, measurement_unit=mu)
-            self.stdout.write(self.style.SUCCESS(f'Created {len(seed_ingredients)} sample ingredients'))
+                Ingredient.objects.get_or_create(
+                    name=name, measurement_unit=mu
+                )
+            self.stdout.write(self.style.SUCCESS(
+                f'Created {len(seed_ingredients)} sample ingredients')
+            )
 
         # Create users
         users_data = [
-            # (email, username, first_name, last_name, password, is_staff, is_superuser)
-            ('admin@foodgram.local', 'admin', 'Админ', 'Локальный', 'Admin12345', True, True),
-            ('manager@foodgram.local', 'manager', 'Менеджер', 'Тестовый', 'Manager12345', True, False),
-            ('alice@foodgram.local', 'alice', 'Алиса', 'Авторы', 'Pass12345!', False, False),
-            ('bob@foodgram.local', 'bob', 'Боб', 'Авторы', 'Pass12345!', False, False),
-            ('carol@foodgram.local', 'carol', 'Кэрол', 'Авторы', 'Pass12345!', False, False),
+            (
+                'admin@foodgram.local', 'admin', 'Админ', 'Локальный',
+                'Admin12345', True, True,
+            ),
+            (
+                'manager@foodgram.local', 'manager', 'Менеджер', 'Тестовый',
+                'Manager12345', True, False,
+            ),
+            (
+                'alice@foodgram.local', 'alice', 'Алиса', 'Авторы',
+                'Pass12345!', False, False,
+            ),
+            (
+                'bob@foodgram.local', 'bob', 'Боб', 'Авторы',
+                'Pass12345!', False, False,
+            ),
+            (
+                'carol@foodgram.local', 'carol', 'Кэрол', 'Авторы',
+                'Pass12345!', False, False,
+            ),
         ]
 
         created_users = []
