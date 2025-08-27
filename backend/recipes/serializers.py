@@ -43,7 +43,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'tags', 'author', 'ingredients', 
+            'id', 'tags', 'author', 'ingredients',
             'is_favorited', 'is_in_shopping_cart',
             'name', 'image', 'text', 'cooking_time'
         )
@@ -96,12 +96,15 @@ class RecipeWriteIngredientSerializer(serializers.Serializer):
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     ingredients = RecipeWriteIngredientSerializer(many=True)
-    tags = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
+    tags = serializers.ListField(
+        child=serializers.IntegerField(), 
+        allow_empty=False
+        )
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
-        fields = ('id', 'ingredients', 'tags', 
+        fields = ('id', 'ingredients', 'tags',
         'image', 'name', 'text', 'cooking_time')
 
     def validate_cooking_time(self, value: int):
