@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 items = json.load(f)
                 for item in items:
                     Ingredient.objects.get_or_create(
-                        name=item['name'], 
+                        name=item['name'],
                         measurement_unit=item['measurement_unit']
                     )
                     count += 1
