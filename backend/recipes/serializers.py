@@ -1,53 +1,55 @@
+import base64
+import uuid
 from __future__ import annotations
+from django.core.files.base import ContentFile
 from typing import List
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
 from users.serializers import UserSerializer
 from .models import Tag, Ingredient, Recipe, RecipeIngredient
 
 
 class TagSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Tag
-		fields = ('id', 'name', 'slug')
+    class Meta:
+	    model = Tag
+	    fields = ('id', 'name', 'slug')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Ingredient
-		fields = ('id', 'name', 'measurement_unit')
+    class Meta:
+	    model = Ingredient
+	    fields = ('id', 'name', 'measurement_unit')
 
 
 class IngredientInRecipeSerializer(serializers.Serializer):
-	id = serializers.IntegerField(read_only=True)
-	name = serializers.CharField(read_only=True)
-	measurement_unit = serializers.CharField(read_only=True)
-	amount = serializers.IntegerField()
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    measurement_unit = serializers.CharField(read_only=True)
+    amount = serializers.IntegerField()
 
 
 class RecipeMinifiedSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Recipe
-		fields = ('id', 'name', 'image', 'cooking_time')
+    class Meta:
+	    model = Recipe
+	    fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-	author = UserSerializer(read_only=True)
-	tags = TagSerializer(many=True, read_only=True)
-	ingredients = serializers.SerializerMethodField()
-	is_favorited = serializers.SerializerMethodField()
-	is_in_shopping_cart = serializers.SerializerMethodField()
+    author = UserSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    ingredients = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
-	class Meta:
-		model = Recipe
-		fields = (
+    class Meta:
+	    model = Recipe
+	    fields = (
 			'id', 'tags', 'author', 'ingredients', 'is_favorited', 'is_in_shopping_cart',
 			'name', 'image', 'text', 'cooking_time'
 		)
 
 	def get_ingredients(self, obj: Recipe):
-		items = RecipeIngredient.objects.filter(recipe=obj).select_related('ingredient')
-		return [
+	    items = RecipeIngredient.objects.filter(recipe=obj).select_related('ingredient')
+	    return [
 			{
 				'id': item.ingredient_id,
 				'name': item.ingredient.name,
@@ -58,23 +60,20 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 		]
 
 	def get_is_favorited(self, obj: Recipe) -> bool:
-		request = self.context.get('request')
-		if not request or request.user.is_anonymous:
-			return False
-		return obj.favorited_by.filter(user=request.user).exists()
+	    request = self.context.get('request')
+	    if not request or request.user.is_anonymous:
+		    return False
+	    return obj.favorited_by.filter(user=request.user).exists()
 
-	def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
-		request = self.context.get('request')
-		if not request or request.user.is_anonymous:
-			return False
-		return obj.in_carts.filter(user=request.user).exists()
+    def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
+	    request = self.context.get('request')
+	    if not request or request.user.is_anonymous:
+		    return False
+	    return obj.in_carts.filter(user=request.user).exists()
 
 
 class Base64ImageField(serializers.ImageField):
-	def to_internal_value(self, data):
-		from django.core.files.base import ContentFile
-		import base64
-		import uuid
+    def to_internal_value(self, data):
 		if isinstance(data, str) and data.startswith('data:image'):
 			header, b64data = data.split(';base64,')
 			file_ext = header.split('/')[-1]
