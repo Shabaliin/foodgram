@@ -1,14 +1,16 @@
 from typing import Any
+
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
 from django.db.models import Max
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.pagination import PageNumberPagination
-from .serializers import UserSerializer, UserWithRecipesSerializer
-from .models import Subscription
+
 from recipes.serializers import Base64ImageField
+from .models import Subscription
+from .serializers import UserSerializer, UserWithRecipesSerializer
 
 User = get_user_model()
 
@@ -33,7 +35,10 @@ class UserAvatarView(APIView):
     def put(self, request, *args: Any, **kwargs: Any):
         avatar_b64 = request.data.get('avatar')
         if not avatar_b64:
-            return Response({'avatar': ['Обязательное поле.']}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'avatar': ['Обязательное поле.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         file = self.image_field.to_internal_value(avatar_b64)
         user = request.user
         user.avatar.save(file.name, file, save=True)
@@ -53,9 +58,14 @@ class SubscriptionsListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # authors current user is subscribed to, ordered by latest recipe publication (new to old)
-        qs = User.objects.filter(id__in=Subscription.objects.filter(user=self.request.user).values('author_id'))
-        qs = qs.annotate(last_pub=Max('recipes__created_at')).order_by('-last_pub', '-id')
+        qs = User.objects.filter(
+            id__in=Subscription.objects.filter(
+                user=self.request.user
+            ).values('author_id')
+        )
+        qs = qs.annotate(
+            last_pub=Max('recipes__created_at')
+        ).order_by('-last_pub', '-id')
         return qs
 
     def get_serializer_context(self):
@@ -71,18 +81,39 @@ class SubscribeView(APIView):
 
     def post(self, request, id: int):
         if request.user.id == id:
-            return Response({'errors': 'Нельзя подписаться на себя'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Нельзя подписаться на себя'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         author = get_object_or_404(User, id=id)
-        obj, created = Subscription.objects.get_or_create(user=request.user, author=author)
+        obj, created = Subscription.objects.get_or_create(
+            user=request.user,
+            author=author,
+        )
         if not created:
-            return Response({'errors': 'Уже подписаны'}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = UserWithRecipesSerializer(author, context={**self.get_serializer_context(request), 'request': request})
+            return Response(
+                {'errors': 'Уже подписаны'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = UserWithRecipesSerializer(
+            author,
+            context={
+                **self.get_serializer_context(request),
+                'request': request,
+            },
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, id: int):
-        deleted, _ = Subscription.objects.filter(user=request.user, author_id=id).delete()
+        deleted, _ = Subscription.objects.filter(
+            user=request.user,
+            author_id=id,
+        ).delete()
         if not deleted:
-            return Response({'errors': 'Не были подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Не были подписаны'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer_context(self, request):
