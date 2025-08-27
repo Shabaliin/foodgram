@@ -1,4 +1,9 @@
-Находясь в папке infra, выполните команду docker-compose up. При выполнении этой команды контейнер frontend, описанный в docker-compose.yml, подготовит файлы, необходимые для работы фронтенд-приложения, а затем прекратит свою работу.
+users:
+admin@foodgram.local / Admin12345
+manager@foodgram.local / Manager12345
+alice@foodgram.local / Pass12345!
+bob@foodgram.local / Pass12345!
+carol@foodgram.local / Pass12345!
 
-По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
-
+superuser:
+test@test.ru / Admin12345
