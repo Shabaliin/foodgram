@@ -47,7 +47,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 			'name', 'image', 'text', 'cooking_time'
 		)
 
-	def get_ingredients(self, obj: Recipe):
+    def get_ingredients(self, obj: Recipe):
 	    items = RecipeIngredient.objects.filter(recipe=obj).select_related('ingredient')
 	    return [
 			{
