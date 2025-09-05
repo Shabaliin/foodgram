@@ -4,7 +4,12 @@ from django.http import HttpRequest
 
 
 class RecipesFilterBackend(BaseFilterBackend):
-    def filter_queryset(self, request: HttpRequest, queryset: QuerySet, view) -> QuerySet:
+    def filter_queryset(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet,
+        view,
+    ) -> QuerySet:
         author = request.query_params.get('author')
         if author:
             queryset = queryset.filter(author_id=author)
