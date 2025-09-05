@@ -22,16 +22,25 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = ('name', 'author')
     search_fields = (
         'name',
-        'author__username', 'author__email', 'author__first_name', 'author__last_name',
+        'author__username',
+        'author__email',
+        'author__first_name',
+        'author__last_name',
     )
     list_filter = ('tags',)
     inlines = [RecipeIngredientInline]
     readonly_fields = ('favorites_total',)
 
     fieldsets = (
-        (None, {'fields': ('author', 'name', 'image', 'text', 'cooking_time', 'tags')}),
+        (None, {
+            'fields': (
+                'author', 'name', 'image',
+                'text', 'cooking_time', 'tags'
+            )
+        }),
         ('Служебное', {'fields': ('favorites_total',)}),
     )
+
 
     @admin.display(description='В избранном (кол-во)')
     def favorites_total(self, obj: Recipe) -> int:
