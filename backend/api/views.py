@@ -58,7 +58,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in [
             'favorite',
             'shopping_cart',
-            'download_shopping_cart'
+            'download_shopping_cart',
         ]:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -78,12 +78,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def _remove_relation(self, model, request, recipe, not_found_error: str):
         deleted, _ = model.objects.filter(
             user=request.user,
-            recipe=recipe
+            recipe=recipe,
         ).delete()
         if not deleted:
             return Response(
                 {'errors': not_found_error},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -94,7 +94,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self._add_relation(
                 request,
                 recipe,
-                FavoriteActionSerializer
+                FavoriteActionSerializer,
             )
         return self._remove_relation(
             Favorite, request, recipe, 'Рецепта не было в избранном'
@@ -121,12 +121,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by('ingredient__name')
         )
         lines = [
-            f"{row['ingredient__name']} ({row['ingredient__measurement_unit']}) — {row['total']}"
+            "{name} ({unit}) — {total}".format(
+                name=row['ingredient__name'],
+                unit=row['ingredient__measurement_unit'],
+                total=row['total'],
+            )
             for row in agg
         ]
         content = "\n".join(lines) or "Список покупок пуст."
         response = HttpResponse(
-            content, content_type='text/plain; charset=utf-8'
+            content,
+            content_type='text/plain; charset=utf-8',
         )
         response['Content-Disposition'] = (
             'attachment; filename="shopping-list.txt"'
@@ -197,14 +202,18 @@ class UserViewSet(viewsets.ViewSet):
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
 
-    @decorators.action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @decorators.action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def subscriptions(self, request):
         qs = User.objects.filter(
             id__in=Subscription.objects.filter(user=request.user).values('author_id')
         )
-        qs = qs.annotate(last_pub=Max('recipes__created_at')).order_by(
-            '-last_pub', '-id'
-        )
+        qs = qs.annotate(
+            last_pub=Max('recipes__created_at')
+        ).order_by('-last_pub', '-id')
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(qs, request, view=self)
@@ -217,7 +226,11 @@ class UserViewSet(viewsets.ViewSet):
         serializer = UserWithRecipesSerializer(page, many=True, context=ctx)
         return paginator.get_paginated_response(serializer.data)
 
-    @decorators.action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+    @decorators.action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def subscribe(self, request, pk: int = None):
         if request.method.lower() == 'post':
             if request.user.id == int(pk):
@@ -227,7 +240,8 @@ class UserViewSet(viewsets.ViewSet):
                 )
             author = get_object_or_404(User, id=pk)
             obj, created = Subscription.objects.get_or_create(
-                user=request.user, author=author
+                user=request.user,
+                author=author,
             )
             if not created:
                 return Response(
@@ -243,7 +257,8 @@ class UserViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         deleted, _ = Subscription.objects.filter(
-            user=request.user, author_id=pk
+            user=request.user,
+            author_id=pk,
         ).delete()
         if not deleted:
             return Response(
@@ -252,7 +267,12 @@ class UserViewSet(viewsets.ViewSet):
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @decorators.action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
+    @decorators.action(
+        detail=False,
+        methods=['put', 'delete'],
+        url_path='me/avatar',
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def avatar(self, request):
         if request.method.lower() == 'put':
             avatar_b64 = request.data.get('avatar')
