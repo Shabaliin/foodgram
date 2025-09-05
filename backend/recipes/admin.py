@@ -41,7 +41,6 @@ class RecipeAdmin(admin.ModelAdmin):
         ('Служебное', {'fields': ('favorites_total',)}),
     )
 
-
     @admin.display(description='В избранном (кол-во)')
     def favorites_total(self, obj: Recipe) -> int:
         return Favorite.objects.filter(recipe=obj).count()
