@@ -32,8 +32,15 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=INGREDIENT_NAME_MAX_LENGTH, db_index=True, verbose_name='Название')
-    measurement_unit = models.CharField(max_length=INGREDIENT_UNIT_MAX_LENGTH, verbose_name='Единица измерения')
+    name = models.CharField(
+        max_length=INGREDIENT_NAME_MAX_LENGTH,
+        db_index=True,
+        verbose_name='Название'
+    )
+    measurement_unit = models.CharField(
+        max_length=INGREDIENT_UNIT_MAX_LENGTH,
+        verbose_name='Единица измерения'
+    )
 
     class Meta:
         unique_together = ('name', 'measurement_unit')
@@ -49,14 +56,37 @@ def recipe_image_upload_to(instance: 'Recipe', filename: str) -> str:
 
 
 class Recipe(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Автор')
-    name = models.CharField(max_length=RECIPE_NAME_MAX_LENGTH, verbose_name='Название')
-    image = models.ImageField(upload_to=recipe_image_upload_to, verbose_name='Изображение')
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='Автор'
+    )
+    name = models.CharField(
+        max_length=RECIPE_NAME_MAX_LENGTH,
+        verbose_name='Название'
+    )
+    image = models.ImageField(
+        upload_to=recipe_image_upload_to,
+        verbose_name='Изображение'
+    )
     text = models.TextField(verbose_name='Описание')
-    cooking_time = models.PositiveIntegerField(verbose_name='Время приготовления')
-    tags = models.ManyToManyField(Tag, blank=False, verbose_name='Теги')
-    ingredients = models.ManyToManyField('Ingredient', through='RecipeIngredient', verbose_name='Ингредиенты')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+    cooking_time = models.PositiveIntegerField(
+        verbose_name='Время приготовления'
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=False,
+        verbose_name='Теги'
+    )
+    ingredients = models.ManyToManyField(
+        'Ingredient',
+        through='RecipeIngredient',
+        verbose_name='Ингредиенты'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Создано'
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -68,8 +98,17 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipe_ingredients', verbose_name='Рецепт')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='ingredient_recipes', verbose_name='Ингредиент')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='recipe_ingredients',
+        verbose_name='Рецепт'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE,
+        related_name='ingredient_recipes',
+        verbose_name='Ингредиент'
+    )
     amount = models.PositiveIntegerField(verbose_name='Количество')
 
     class Meta:
@@ -87,8 +126,18 @@ class UserRecipeRelation(models.Model):
 
 
 class Favorite(UserRecipeRelation):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites', verbose_name='Пользователь')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Рецепт')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorited_by',
+        verbose_name='Рецепт'
+    )
 
     class Meta:
         unique_together = ('user', 'recipe')
@@ -97,8 +146,18 @@ class Favorite(UserRecipeRelation):
 
 
 class ShoppingCart(UserRecipeRelation):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shopping_cart', verbose_name='Пользователь')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='in_carts', verbose_name='Рецепт')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='in_carts',
+        verbose_name='Рецепт'
+    )
 
     class Meta:
         unique_together = ('user', 'recipe')
@@ -107,9 +166,21 @@ class ShoppingCart(UserRecipeRelation):
 
 
 class RecipeShortLink(models.Model):
-    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE, related_name='shortlink', verbose_name='Рецепт')
-    code = models.SlugField(max_length=SHORTLINK_CODE_MAX_LENGTH, unique=True, verbose_name='Код')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+    recipe = models.OneToOneField(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shortlink',
+        verbose_name='Рецепт'
+    )
+    code = models.SlugField(
+        max_length=SHORTLINK_CODE_MAX_LENGTH,
+        unique=True,
+        verbose_name='Код'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Создано'
+    )
 
     class Meta:
         verbose_name = 'Короткая ссылка'
