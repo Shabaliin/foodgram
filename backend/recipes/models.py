@@ -70,7 +70,15 @@ class RecipeIngredient(models.Model):
 		verbose_name_plural = 'Ингредиенты в рецепте'
 
 
-class Favorite(models.Model):
+class UserRecipeRelation(models.Model):
+	class Meta:
+		abstract = True
+
+	def __str__(self) -> str:
+		return f"{self.user} — {self.recipe}"
+
+
+class Favorite(UserRecipeRelation):
 	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites', verbose_name='Пользователь')
 	recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorited_by', verbose_name='Рецепт')
 
@@ -80,7 +88,7 @@ class Favorite(models.Model):
 		verbose_name_plural = 'Избранное'
 
 
-class ShoppingCart(models.Model):
+class ShoppingCart(UserRecipeRelation):
 	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shopping_cart', verbose_name='Пользователь')
 	recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='in_carts', verbose_name='Рецепт')
 
