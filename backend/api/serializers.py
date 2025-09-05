@@ -245,7 +245,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     def _set_ingredients(self, recipe: Recipe, ingredients_data: List[dict]):
         if not ingredients_data:
-            raise serializers.ValidationError({'ingredients': ['Обязательное поле.']})
+            raise serializers.ValidationError(
+                {'ingredients': ['Обязательное поле.']}
+            )
         ingredient_ids = [d['id'] for d in ingredients_data]
         ingredient_map = {
             i.id: i for i in Ingredient.objects.filter(id__in=ingredient_ids)
