@@ -16,12 +16,14 @@ from .serializers import (
 	IngredientSerializer,
 )
 from .permissions import IsAuthorOrReadOnly
+from .filters import RecipesFilterBackend
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
 	queryset = Recipe.objects.all().select_related('author').prefetch_related('tags', 'recipe_ingredients__ingredient')
 	permission_classes = [IsAuthorOrReadOnly]
 	pagination_class = StandardResultsSetPagination
+	filter_backends = [RecipesFilterBackend]
 
 	def get_serializer_class(self):
 		if self.action in ['list', 'retrieve']:
@@ -37,29 +39,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 	def perform_create(self, serializer):
 		serializer.save()
-
-	def get_queryset(self):
-		qs = super().get_queryset()
-		request = self.request
-		author = request.query_params.get('author')
-		if author:
-			qs = qs.filter(author_id=author)
-		tags = request.query_params.getlist('tags')
-		if tags:
-			qs = qs.filter(tags__slug__in=tags).distinct()
-		is_favorited = request.query_params.get('is_favorited')
-		if is_favorited in {'0', '1'} and request.user.is_authenticated:
-			if is_favorited == '1':
-				qs = qs.filter(favorited_by__user=request.user)
-			else:
-				qs = qs.exclude(favorited_by__user=request.user)
-		is_in_cart = request.query_params.get('is_in_shopping_cart')
-		if is_in_cart in {'0', '1'} and request.user.is_authenticated:
-			if is_in_cart == '1':
-				qs = qs.filter(in_carts__user=request.user)
-			else:
-				qs = qs.exclude(in_carts__user=request.user)
-		return qs
 
 	@action(detail=True, methods=['post', 'delete'])
 	def favorite(self, request, pk=None):
