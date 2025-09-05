@@ -22,16 +22,15 @@ urlpatterns = [
         'users/<int:pk>/subscribe/',
         UserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
         name='user-subscribe',
-    )
+    ),
     path(
         'users/subscriptions/',
         UserViewSet.as_view({'get': 'subscriptions'}),
         name='subscriptions-list',
-    )
-
+    ),
     path(
         'users/me/avatar/',
         UserViewSet.as_view({'put': 'avatar', 'delete': 'avatar'}),
         name='user-avatar',
-    )
+    ),
 ]
