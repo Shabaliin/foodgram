@@ -210,8 +210,8 @@ class UserViewSet(viewsets.ViewSet):
     def subscriptions(self, request):
         qs = User.objects.filter(
             id__in=Subscription.objects.filter(
-                user=request.user).values('author_id'
-            )
+                user=request.user
+                ).values('author_id')
         )
         qs = qs.annotate(
             last_pub=Max('recipes__created_at')
