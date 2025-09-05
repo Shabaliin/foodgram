@@ -1,12 +1,13 @@
 from django.contrib import admin
+
 from .models import (
-    Tag,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    Favorite,
-    ShoppingCart,
-    RecipeShortLink,
+	Tag,
+	Ingredient,
+	Recipe,
+	RecipeIngredient,
+	Favorite,
+	ShoppingCart,
+	RecipeShortLink,
 )
 
 
@@ -35,9 +36,9 @@ class RecipeAdmin(admin.ModelAdmin):
         ('Служебное', {'fields': ('favorites_total',)}),
     )
 
-    def favorites_total(self, obj: Recipe) -> int:
-        return Favorite.objects.filter(recipe=obj).count()
-    favorites_total.short_description = 'В избранном (кол-во)'
+	@admin.display(description='В избранном (кол-во)')
+	def favorites_total(self, obj: Recipe) -> int:
+		return Favorite.objects.filter(recipe=obj).count()
 
 
 @admin.register(Ingredient)
