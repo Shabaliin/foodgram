@@ -1,13 +1,17 @@
 from __future__ import annotations
-from django.db.models import Sum
+
+from django.contrib.auth import get_user_model
+from django.db.models import Sum, Max
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action, api_view, permission_classes
+
+from rest_framework import viewsets, permissions, status, decorators
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from users.pagination import StandardResultsSetPagination
-from rest_framework.routers import SimpleRouter
-from .models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient, RecipeIngredient
+
+from .filters import RecipesFilterBackend
+from .pagination import StandardResultsSetPagination
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
 	RecipeReadSerializer,
 	RecipeCreateUpdateSerializer,
@@ -16,9 +20,14 @@ from .serializers import (
 	IngredientSerializer,
 	FavoriteActionSerializer,
 	ShoppingCartActionSerializer,
+	UserSerializer,
+	UserWithRecipesSerializer,
 )
-from .permissions import IsAuthorOrReadOnly
-from .filters import RecipesFilterBackend
+from .fields import Base64ImageField
+from recipes.models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient, RecipeIngredient
+from users.models import Subscription
+
+User = get_user_model()
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -54,21 +63,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
 			return Response({'errors': not_found_error}, status=status.HTTP_400_BAD_REQUEST)
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
-	@action(detail=True, methods=['post', 'delete'])
+	@decorators.action(detail=True, methods=['post', 'delete'])
 	def favorite(self, request, pk=None):
 		recipe = self.get_object()
 		if request.method.lower() == 'post':
 			return self._add_relation(request, recipe, FavoriteActionSerializer)
 		return self._remove_relation(Favorite, request, recipe, 'Рецепта не было в избранном')
 
-	@action(detail=True, methods=['post', 'delete'])
+	@decorators.action(detail=True, methods=['post', 'delete'])
 	def shopping_cart(self, request, pk=None):
 		recipe = self.get_object()
 		if request.method.lower() == 'post':
 			return self._add_relation(request, recipe, ShoppingCartActionSerializer)
 		return self._remove_relation(ShoppingCart, request, recipe, 'Рецепта не было в списке покупок')
 
-	@action(detail=False, methods=['get'])
+	@decorators.action(detail=False, methods=['get'])
 	def download_shopping_cart(self, request):
 		agg = (
 			RecipeIngredient.objects
@@ -86,7 +95,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 		response['Content-Disposition'] = 'attachment; filename="shopping-list.txt"'
 		return response
 
-	@action(detail=True, methods=['get'], url_path='get-link')
+	@decorators.action(detail=True, methods=['get'], url_path='get-link')
 	def get_link(self, request, pk=None):
 		recipe = self.get_object()
 		link, _ = RecipeShortLink.objects.get_or_create(recipe=recipe)
@@ -98,10 +107,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 			link.save(update_fields=['code'])
 		absolute = request.build_absolute_uri(f"/s/{link.code}")
 		return Response({"short-link": absolute})
-
-
-router = SimpleRouter()
-router.register(r'recipes', RecipeViewSet, basename='recipes')
 
 
 @api_view(['GET'])
@@ -132,3 +137,69 @@ def list_ingredients(request):
 def get_ingredient(request, id: int):
 	ingredient = get_object_or_404(Ingredient, id=id)
 	return Response(IngredientSerializer(ingredient, context={'request': request}).data)
+
+
+class UserViewSet(viewsets.ViewSet):
+	permission_classes = [permissions.AllowAny]
+	pagination_class = StandardResultsSetPagination
+	image_field = Base64ImageField()
+
+	def retrieve(self, request, pk: int = None):
+		user = get_object_or_404(User, id=pk)
+		serializer = UserSerializer(user, context={'request': request})
+		return Response(serializer.data)
+
+	@decorators.action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+	def subscriptions(self, request):
+		qs = User.objects.filter(id__in=Subscription.objects.filter(user=request.user).values('author_id'))
+		qs = qs.annotate(last_pub=Max('recipes__created_at')).order_by('-last_pub', '-id')
+
+		paginator = self.pagination_class()
+		page = paginator.paginate_queryset(qs, request, view=self)
+
+		recipes_limit = request.query_params.get('recipes_limit')
+		ctx = {'request': request}
+		if recipes_limit and recipes_limit.isdigit():
+			ctx['recipes_limit'] = int(recipes_limit)
+
+		serializer = UserWithRecipesSerializer(page, many=True, context=ctx)
+		return paginator.get_paginated_response(serializer.data)
+
+	@decorators.action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+	def subscribe(self, request, pk: int = None):
+		if request.method.lower() == 'post':
+			if request.user.id == int(pk):
+				return Response({'errors': 'Нельзя подписаться на себя'}, status=status.HTTP_400_BAD_REQUEST)
+			author = get_object_or_404(User, id=pk)
+			obj, created = Subscription.objects.get_or_create(user=request.user, author=author)
+			if not created:
+				return Response({'errors': 'Уже подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+
+			recipes_limit = request.query_params.get('recipes_limit')
+			ctx = {'request': request}
+			if recipes_limit and recipes_limit.isdigit():
+				ctx['recipes_limit'] = int(recipes_limit)
+			serializer = UserWithRecipesSerializer(author, context=ctx)
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+		deleted, _ = Subscription.objects.filter(user=request.user, author_id=pk).delete()
+		if not deleted:
+			return Response({'errors': 'Не были подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+		return Response(status=status.HTTP_204_NO_CONTENT)
+
+	@decorators.action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
+	def avatar(self, request):
+		if request.method.lower() == 'put':
+			avatar_b64 = request.data.get('avatar')
+			if not avatar_b64:
+				return Response({'avatar': ['Обязательное поле.']}, status=status.HTTP_400_BAD_REQUEST)
+			file = Base64ImageField().to_internal_value(avatar_b64)
+			user = request.user
+			user.avatar.save(file.name, file, save=True)
+			url = request.build_absolute_uri(user.avatar.url)
+			return Response({'avatar': url}, status=status.HTTP_200_OK)
+
+		user = request.user
+		if user.avatar:
+			user.avatar.delete(save=True)
+		return Response(status=status.HTTP_204_NO_CONTENT)

@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'drf_spectacular',
+    'api',
     'users',
     'recipes',
     'shortlinks',
@@ -95,7 +96,7 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'foodgram_backend.pagination.CustomPagination',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'PAGE_SIZE': 6,
 }
 
@@ -105,15 +106,15 @@ SPECTACULAR_SETTINGS = {
 }
 
 DJOSER = {
-    'LOGIN_FIELD': 'email',
-    'SERIALIZERS': {
-        'user': 'users.serializers.UserSerializer',
-        'current_user': 'users.serializers.UserSerializer',
-        'user_create': 'users.serializers.UserCreateSerializer',
-    },
-    'PERMISSIONS': {
-        'user_list': ['rest_framework.permissions.IsAuthenticated'],
-        'user': ['rest_framework.permissions.AllowAny'],
-        'current_user': ['rest_framework.permissions.IsAuthenticated'],
-    },
+	'LOGIN_FIELD': 'email',
+	'SERIALIZERS': {
+		'user': 'api.serializers.UserSerializer',
+		'current_user': 'api.serializers.UserSerializer',
+		'user_create': 'api.serializers.UserCreateSerializer',
+	},
+	'PERMISSIONS': {
+		'user_list': ['rest_framework.permissions.IsAuthenticated'],
+		'user': ['rest_framework.permissions.AllowAny'],
+		'current_user': ['rest_framework.permissions.IsAuthenticated'],
+	},
 }

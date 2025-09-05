@@ -1,8 +1,0 @@
-from django.urls import path, include
-
-urlpatterns = [
-    path('', include('users.urls')),
-    path('', include('recipes.urls')),
-    path('', include('djoser.urls')),
-    path('auth/', include('djoser.urls.authtoken')),
-]
