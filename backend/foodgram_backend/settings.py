@@ -106,15 +106,15 @@ SPECTACULAR_SETTINGS = {
 }
 
 DJOSER = {
-	'LOGIN_FIELD': 'email',
-	'SERIALIZERS': {
-		'user': 'api.serializers.UserSerializer',
-		'current_user': 'api.serializers.UserSerializer',
-		'user_create': 'api.serializers.UserCreateSerializer',
-	},
-	'PERMISSIONS': {
-		'user_list': ['rest_framework.permissions.IsAuthenticated'],
-		'user': ['rest_framework.permissions.AllowAny'],
-		'current_user': ['rest_framework.permissions.IsAuthenticated'],
-	},
+    'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
+        'user_create': 'api.serializers.UserCreateSerializer',
+    },
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.IsAuthenticated'],
+        'user': ['rest_framework.permissions.AllowAny'],
+        'current_user': ['rest_framework.permissions.IsAuthenticated'],
+    },
 }
