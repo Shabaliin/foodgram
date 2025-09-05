@@ -12,8 +12,16 @@ SHORTLINK_CODE_MAX_LENGTH = 8
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=TAG_NAME_MAX_LENGTH, unique=True, verbose_name='Название')
-    slug = models.SlugField(max_length=TAG_SLUG_MAX_LENGTH, unique=True, verbose_name='Слаг')
+    name = models.CharField(
+        max_length=TAG_NAME_MAX_LENGTH,
+        unique=True,
+        verbose_name='Название'
+    )
+    slug = models.SlugField(
+        max_length=TAG_SLUG_MAX_LENGTH,
+        unique=True,
+        verbose_name='Слаг'
+    )
 
     class Meta:
         verbose_name = 'Тег'
