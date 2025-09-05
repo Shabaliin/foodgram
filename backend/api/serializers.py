@@ -84,7 +84,14 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'password')
+        fields = (
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'password'
+        )
 
 
 class UserWithRecipesSerializer(UserSerializer):
@@ -193,22 +200,30 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if not tags:
             raise serializers.ValidationError({'tags': ['Обязательное поле.']})
         if len(tags) != len(set(tags)):
-            raise serializers.ValidationError({'tags': ['Теги должны быть уникальны.']})
+            raise serializers.ValidationError(
+                {'tags': ['Теги должны быть уникальны.']}
+            )
 
         ingredients = attrs.get('ingredients')
         if not ingredients:
-            raise serializers.ValidationError({'ingredients': ['Обязательное поле.']})
+            raise serializers.ValidationError(
+                {'ingredients': ['Обязательное поле.']}
+            )
         seen_ids = set()
         for item in ingredients:
             ingredient_id = item.get('id')
             if ingredient_id in seen_ids:
-                raise serializers.ValidationError({'ingredients': ['Ингредиенты должны быть уникальны.']})
+                raise serializers.ValidationError(
+                    {'ingredients': ['Ингредиенты должны быть уникальны.']}
+                )
             seen_ids.add(ingredient_id)
         return attrs
 
     def validate_cooking_time(self, value: int):
         if value < 1:
-            raise serializers.ValidationError('Убедитесь, что это значение больше либо равно 1.')
+            raise serializers.ValidationError(
+                'Убедитесь, что это значение больше либо равно 1.'
+            )
         return value
 
     def create(self, validated_data):
