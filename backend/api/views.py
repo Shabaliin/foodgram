@@ -55,7 +55,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['create', 'partial_update', 'destroy']:
             return [IsAuthorOrReadOnly()]
-        if self.action in ['favorite', 'shopping_cart', 'download_shopping_cart']:
+        if self.action in [
+            'favorite',
+            'shopping_cart',
+            'download_shopping_cart'
+        ]:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
@@ -72,16 +76,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _remove_relation(self, model, request, recipe, not_found_error: str):
-        deleted, _ = model.objects.filter(user=request.user, recipe=recipe).delete()
+        deleted, _ = model.objects.filter(
+            user=request.user,
+            recipe=recipe
+        ).delete()
         if not deleted:
-            return Response({'errors': not_found_error}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': not_found_error},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @decorators.action(detail=True, methods=['post', 'delete'])
     def favorite(self, request, pk=None):
         recipe = self.get_object()
         if request.method.lower() == 'post':
-            return self._add_relation(request, recipe, FavoriteActionSerializer)
+            return self._add_relation(
+                request,
+                recipe,
+                FavoriteActionSerializer
+            )
         return self._remove_relation(
             Favorite, request, recipe, 'Рецепта не было в избранном'
         )
