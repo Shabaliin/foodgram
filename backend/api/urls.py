@@ -1,6 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RecipeViewSet, UserViewSet, list_tags, get_tag, list_ingredients, get_ingredient
+from .views import (
+    RecipeViewSet, UserViewSet,
+    list_tags, get_tag,
+    list_ingredients, get_ingredient,
+)
 
 router = DefaultRouter()
 router.register(r'recipes', RecipeViewSet, basename='recipes')
@@ -14,7 +18,20 @@ urlpatterns = [
     path('tags/<int:id>/', get_tag),
     path('ingredients/', list_ingredients),
     path('ingredients/<int:id>/', get_ingredient),
-    path('users/<int:pk>/subscribe/', UserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}), name='user-subscribe'),
-    path('users/subscriptions/', UserViewSet.as_view({'get': 'subscriptions'}), name='subscriptions-list'),
-    path('users/me/avatar/', UserViewSet.as_view({'put': 'avatar', 'delete': 'avatar'}), name='user-avatar'),
+    path(
+        'users/<int:pk>/subscribe/',
+        UserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
+        name='user-subscribe',
+    )
+    path(
+        'users/subscriptions/',
+        UserViewSet.as_view({'get': 'subscriptions'}),
+        name='subscriptions-list',
+    )
+
+    path(
+        'users/me/avatar/',
+        UserViewSet.as_view({'put': 'avatar', 'delete': 'avatar'}),
+        name='user-avatar',
+    )
 ]
