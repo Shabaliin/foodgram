@@ -1,26 +1,28 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import UserViewSet
 
-from . import views
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='users')
 
 urlpatterns = [
     path(
-        'users/me/avatar/',
-        views.UserAvatarView.as_view(),
-        name='user-avatar',
+        '',
+        include(router.urls)
     ),
     path(
+        'users/<int:pk>/subscribe/',
+        UserViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
+        name='user-subscribe'
+    ),
+	path(
         'users/subscriptions/',
-        views.SubscriptionsListView.as_view(),
-        name='subscriptions-list',
+        UserViewSet.as_view({'get': 'subscriptions'}),
+        name='subscriptions-list'
     ),
-    path(
-        'users/<int:id>/',
-        views.UserDetailView.as_view(),
-        name='user-detail',
-    ),
-    path(
-        'users/<int:id>/subscribe/',
-        views.SubscribeView.as_view(),
-        name='user-subscribe',
+	path(
+        'users/me/avatar/',
+        UserViewSet.as_view({'put': 'avatar', 'delete': 'avatar'}),
+        name='user-avatar'
     ),
 ]
