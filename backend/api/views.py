@@ -15,7 +15,6 @@ from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     RecipeReadSerializer,
     RecipeCreateUpdateSerializer,
-    RecipeMinifiedSerializer,
     TagSerializer,
     IngredientSerializer,
     FavoriteActionSerializer,
@@ -24,14 +23,26 @@ from .serializers import (
     UserWithRecipesSerializer,
 )
 from .fields import Base64ImageField
-from recipes.models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient, RecipeIngredient
+from recipes.models import (
+    Recipe,
+    Favorite,
+    ShoppingCart,
+    RecipeShortLink,
+    Tag,
+    Ingredient,
+    RecipeIngredient,
+)
 from users.models import Subscription
 
 User = get_user_model()
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all().select_related('author').prefetch_related('tags', 'recipe_ingredients__ingredient')
+    queryset = (
+        Recipe.objects.all()
+        .select_related('author')
+        .prefetch_related('tags', 'recipe_ingredients__ingredient')
+    )
     permission_classes = [IsAuthorOrReadOnly]
     pagination_class = StandardResultsSetPagination
     filter_backends = [RecipesFilterBackend]
@@ -52,7 +63,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def _add_relation(self, request, recipe, serializer_class):
-        serializer = serializer_class(data=request.data, context={'request': request, 'recipe': recipe})
+        serializer = serializer_class(
+            data=request.data,
+            context={'request': request, 'recipe': recipe},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -68,14 +82,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = self.get_object()
         if request.method.lower() == 'post':
             return self._add_relation(request, recipe, FavoriteActionSerializer)
-        return self._remove_relation(Favorite, request, recipe, 'Рецепта не было в избранном')
+        return self._remove_relation(
+            Favorite, request, recipe, 'Рецепта не было в избранном'
+        )
 
     @decorators.action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         if request.method.lower() == 'post':
-            return self._add_relation(request, recipe, ShoppingCartActionSerializer)
-        return self._remove_relation(ShoppingCart, request, recipe, 'Рецепта не было в списке покупок')
+            return self._add_relation(
+                request, recipe, ShoppingCartActionSerializer
+            )
+        return self._remove_relation(
+            ShoppingCart, request, recipe, 'Рецепта не было в списке покупок'
+        )
 
     @decorators.action(detail=False, methods=['get'])
     def download_shopping_cart(self, request):
@@ -91,8 +111,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             for row in agg
         ]
         content = "\n".join(lines) or "Список покупок пуст."
-        response = HttpResponse(content, content_type='text/plain; charset=utf-8')
-        response['Content-Disposition'] = 'attachment; filename="shopping-list.txt"'
+        response = HttpResponse(
+            content, content_type='text/plain; charset=utf-8'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping-list.txt"'
+        )
         return response
 
     @decorators.action(detail=True, methods=['get'], url_path='get-link')
@@ -103,7 +127,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             import secrets
             import string
             alphabet = string.ascii_letters + string.digits
-            link.code = ''.join(secrets.choice(alphabet) for _ in range(4))
+            link.code = ''.join(
+                secrets.choice(alphabet) for _ in range(4)
+            )
             link.save(update_fields=['code'])
         absolute = request.build_absolute_uri(f"/s/{link.code}")
         return Response({"short-link": absolute})
@@ -112,7 +138,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def list_tags(request):
-    return Response(TagSerializer(Tag.objects.all(), many=True, context={'request': request}).data)
+    return Response(
+        TagSerializer(
+            Tag.objects.all(), many=True, context={'request': request}
+        ).data
+    )
 
 
 @api_view(['GET'])
@@ -129,14 +159,18 @@ def list_ingredients(request):
     qs = Ingredient.objects.all()
     if name:
         qs = qs.filter(name__istartswith=name)
-    return Response(IngredientSerializer(qs, many=True, context={'request': request}).data)
+    return Response(
+        IngredientSerializer(qs, many=True, context={'request': request}).data
+    )
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def get_ingredient(request, id: int):
     ingredient = get_object_or_404(Ingredient, id=id)
-    return Response(IngredientSerializer(ingredient, context={'request': request}).data)
+    return Response(
+        IngredientSerializer(ingredient, context={'request': request}).data
+    )
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -151,8 +185,12 @@ class UserViewSet(viewsets.ViewSet):
 
     @decorators.action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def subscriptions(self, request):
-        qs = User.objects.filter(id__in=Subscription.objects.filter(user=request.user).values('author_id'))
-        qs = qs.annotate(last_pub=Max('recipes__created_at')).order_by('-last_pub', '-id')
+        qs = User.objects.filter(
+            id__in=Subscription.objects.filter(user=request.user).values('author_id')
+        )
+        qs = qs.annotate(last_pub=Max('recipes__created_at')).order_by(
+            '-last_pub', '-id'
+        )
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(qs, request, view=self)
@@ -169,11 +207,19 @@ class UserViewSet(viewsets.ViewSet):
     def subscribe(self, request, pk: int = None):
         if request.method.lower() == 'post':
             if request.user.id == int(pk):
-                return Response({'errors': 'Нельзя подписаться на себя'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'errors': 'Нельзя подписаться на себя'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             author = get_object_or_404(User, id=pk)
-            obj, created = Subscription.objects.get_or_create(user=request.user, author=author)
+            obj, created = Subscription.objects.get_or_create(
+                user=request.user, author=author
+            )
             if not created:
-                return Response({'errors': 'Уже подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'errors': 'Уже подписаны'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             recipes_limit = request.query_params.get('recipes_limit')
             ctx = {'request': request}
@@ -182,9 +228,14 @@ class UserViewSet(viewsets.ViewSet):
             serializer = UserWithRecipesSerializer(author, context=ctx)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        deleted, _ = Subscription.objects.filter(user=request.user, author_id=pk).delete()
+        deleted, _ = Subscription.objects.filter(
+            user=request.user, author_id=pk
+        ).delete()
         if not deleted:
-            return Response({'errors': 'Не были подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Не были подписаны'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @decorators.action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
@@ -192,7 +243,10 @@ class UserViewSet(viewsets.ViewSet):
         if request.method.lower() == 'put':
             avatar_b64 = request.data.get('avatar')
             if not avatar_b64:
-                return Response({'avatar': ['Обязательное поле.']}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'avatar': ['Обязательное поле.']},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             file = Base64ImageField().to_internal_value(avatar_b64)
             user = request.user
             user.avatar.save(file.name, file, save=True)
