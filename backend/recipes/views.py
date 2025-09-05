@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections import defaultdict
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
@@ -7,13 +7,15 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from users.pagination import StandardResultsSetPagination
 from rest_framework.routers import SimpleRouter
-from .models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient
+from .models import Recipe, Favorite, ShoppingCart, RecipeShortLink, Tag, Ingredient, RecipeIngredient
 from .serializers import (
 	RecipeReadSerializer,
 	RecipeCreateUpdateSerializer,
 	RecipeMinifiedSerializer,
 	TagSerializer,
 	IngredientSerializer,
+	FavoriteActionSerializer,
+	ShoppingCartActionSerializer,
 )
 from .permissions import IsAuthorOrReadOnly
 from .filters import RecipesFilterBackend
@@ -40,42 +42,45 @@ class RecipeViewSet(viewsets.ModelViewSet):
 	def perform_create(self, serializer):
 		serializer.save()
 
+	def _add_relation(self, request, recipe, serializer_class):
+		serializer = serializer_class(data=request.data, context={'request': request, 'recipe': recipe})
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+	def _remove_relation(self, model, request, recipe, not_found_error: str):
+		deleted, _ = model.objects.filter(user=request.user, recipe=recipe).delete()
+		if not deleted:
+			return Response({'errors': not_found_error}, status=status.HTTP_400_BAD_REQUEST)
+		return Response(status=status.HTTP_204_NO_CONTENT)
+
 	@action(detail=True, methods=['post', 'delete'])
 	def favorite(self, request, pk=None):
 		recipe = self.get_object()
 		if request.method.lower() == 'post':
-			obj, created = Favorite.objects.get_or_create(user=request.user, recipe=recipe)
-			if not created:
-				return Response({'errors': 'Рецепт уже в избранном'}, status=status.HTTP_400_BAD_REQUEST)
-			return Response(RecipeMinifiedSerializer(recipe, context={'request': request}).data, status=status.HTTP_201_CREATED)
-		else:
-			deleted, _ = Favorite.objects.filter(user=request.user, recipe=recipe).delete()
-			if not deleted:
-				return Response({'errors': 'Рецепта не было в избранном'}, status=status.HTTP_400_BAD_REQUEST)
-			return Response(status=status.HTTP_204_NO_CONTENT)
+			return self._add_relation(request, recipe, FavoriteActionSerializer)
+		return self._remove_relation(Favorite, request, recipe, 'Рецепта не было в избранном')
 
 	@action(detail=True, methods=['post', 'delete'])
 	def shopping_cart(self, request, pk=None):
 		recipe = self.get_object()
 		if request.method.lower() == 'post':
-			obj, created = ShoppingCart.objects.get_or_create(user=request.user, recipe=recipe)
-			if not created:
-				return Response({'errors': 'Рецепт уже в списке покупок'}, status=status.HTTP_400_BAD_REQUEST)
-			return Response(RecipeMinifiedSerializer(recipe, context={'request': request}).data, status=status.HTTP_201_CREATED)
-		else:
-			deleted, _ = ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
-			if not deleted:
-				return Response({'errors': 'Рецепта не было в списке покупок'}, status=status.HTTP_400_BAD_REQUEST)
-			return Response(status=status.HTTP_204_NO_CONTENT)
+			return self._add_relation(request, recipe, ShoppingCartActionSerializer)
+		return self._remove_relation(ShoppingCart, request, recipe, 'Рецепта не было в списке покупок')
 
 	@action(detail=False, methods=['get'])
 	def download_shopping_cart(self, request):
-		items = ShoppingCart.objects.filter(user=request.user).select_related('recipe')
-		ingredients_totals = defaultdict(int)
-		for cart_item in items:
-			for ri in cart_item.recipe.recipe_ingredients.select_related('ingredient').all():
-				ingredients_totals[(ri.ingredient.name, ri.ingredient.measurement_unit)] += ri.amount
-		lines = [f"{name} ({unit}) — {amount}" for (name, unit), amount in ingredients_totals.items()]
+		agg = (
+			RecipeIngredient.objects
+			.filter(recipe__in_carts__user=request.user)
+			.values('ingredient__name', 'ingredient__measurement_unit')
+			.annotate(total=Sum('amount'))
+			.order_by('ingredient__name')
+		)
+		lines = [
+			f"{row['ingredient__name']} ({row['ingredient__measurement_unit']}) — {row['total']}"
+			for row in agg
+		]
 		content = "\n".join(lines) or "Список покупок пуст."
 		response = HttpResponse(content, content_type='text/plain; charset=utf-8')
 		response['Content-Disposition'] = 'attachment; filename="shopping-list.txt"'

@@ -178,3 +178,40 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
                 ingredient=ing,
                 amount=item['amount'],
             )
+
+class FavoriteActionSerializer(serializers.Serializer):
+	def validate(self, attrs):
+		from .models import Favorite
+		user = self.context['request'].user
+		recipe = self.context['recipe']
+		if Favorite.objects.filter(user=user, recipe=recipe).exists():
+			raise serializers.ValidationError({'errors': 'Рецепт уже в избранном'})
+		return attrs
+
+	def create(self, validated_data):
+		from .models import Favorite
+		user = self.context['request'].user
+		recipe = self.context['recipe']
+		return Favorite.objects.create(user=user, recipe=recipe)
+
+	def to_representation(self, instance):
+		return RecipeMinifiedSerializer(self.context['recipe'], context={'request': self.context.get('request')}).data
+
+
+class ShoppingCartActionSerializer(serializers.Serializer):
+	def validate(self, attrs):
+		from .models import ShoppingCart
+		user = self.context['request'].user
+		recipe = self.context['recipe']
+		if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+			raise serializers.ValidationError({'errors': 'Рецепт уже в списке покупок'})
+		return attrs
+
+	def create(self, validated_data):
+		from .models import ShoppingCart
+		user = self.context['request'].user
+		recipe = self.context['recipe']
+		return ShoppingCart.objects.create(user=user, recipe=recipe)
+
+	def to_representation(self, instance):
+		return RecipeMinifiedSerializer(self.context['recipe'], context={'request': self.context.get('request')}).data
