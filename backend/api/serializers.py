@@ -3,7 +3,14 @@ from typing import List
 
 from rest_framework import serializers
 
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
+from recipes.models import (
+	Tag,
+	Ingredient,
+	Recipe,
+	RecipeIngredient,
+	Favorite,   
+	ShoppingCart,
+)
 from users.models import User
 from .fields import Base64ImageField
 
@@ -260,3 +267,36 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             )
             for item in ingredients_data
         ])
+
+class FavoriteActionSerializer(serializers.Serializer):
+	def create(self, validated_data):
+		request = self.context['request']
+		recipe = self.context['recipe']
+		if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+			raise serializers.ValidationError({'errors': 'Рецепт уже в избранном'})
+		Favorite.objects.create(user=request.user, recipe=recipe)
+		return recipe
+
+	def to_representation(self, instance):
+		request = self.context.get('request')
+		return RecipeMinifiedSerializer(
+			instance,
+			context={'request': request},
+		).data
+
+
+class ShoppingCartActionSerializer(serializers.Serializer):
+	def create(self, validated_data):
+		request = self.context['request']
+		recipe = self.context['recipe']
+		if ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists():
+			raise serializers.ValidationError({'errors': 'Рецепт уже в списке покупок'})
+		ShoppingCart.objects.create(user=request.user, recipe=recipe)
+		return recipe
+
+	def to_representation(self, instance):
+		request = self.context.get('request')
+		return RecipeMinifiedSerializer(
+			instance,
+			context={'request': request},
+		).data
